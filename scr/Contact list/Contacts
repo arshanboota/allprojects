@@ -1,0 +1,849 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Image,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+
+const YourApp = () => {
+  const [contacts, setContacts] = useState([
+    { name: 'Arshan', number: '03329010686' },
+    { name: 'samra', number: '03329010686' },
+    { name: 'Natasha', number: '03329010686' },
+  ]);
+
+  const [renderedContacts, setRenderedContacts] = useState([]);
+  const [newName, setNewName] = useState('');
+  const [newNumber, setNewNumber] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [isThirdModalVisible, setThirdModalVisible] = useState(false);
+  const [isForthModalVisible, setForthModalVisible] = useState(false);
+  const [selectedContactForDeletion, setSelectedContactForDeletion] = useState(null);
+  const [selectedContactForDetails, setSelectedContactForDetails] = useState(null);
+
+  useEffect(() => {
+    getdata();
+  }, []);
+
+  const getdata = async () => {
+    const name = await AsyncStorage.getItem('@key');
+    const dataArray = JSON.parse(name);
+    setContacts(dataArray);
+    renderContacts(dataArray);
+  };
+
+  const addContact = async () => {
+    if (newName.trim() === '' || newNumber.trim() === '') {
+      alert('Please enter a valid Name and Number.');
+      return;
+    }
+    const newContact = { name: newName, number: newNumber };
+    const updatedContacts = [...contacts, newContact];
+    const data = JSON.stringify(updatedContacts);
+    await AsyncStorage.setItem('@key', data);
+    setContacts(updatedContacts);
+    setNewName('');
+    setNewNumber('');
+    getdata();
+    renderContacts(updatedContacts);
+  };
+
+  const deleteContact = (index) => {
+    const updatedContacts = [...contacts];
+    updatedContacts.splice(index, 1);
+    setContacts(updatedContacts);
+    renderContacts(updatedContacts);
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    const filteredContacts = contacts.filter((contact) =>
+      contact.name.toLowerCase().includes(query.toLowerCase())
+    );
+    renderContacts(filteredContacts);
+  };
+
+  const renderContacts = (contacts) => {
+    const renderedItems = contacts.map((item, index) => (
+      <View key={index}>
+        <TouchableOpacity onPress={() => setSelectedContactForDetails(item)}>
+          <View style={styles.contactContainer}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>{item.name.substring(0, 1)}</Text>
+            </View>
+            <View>
+              <Text style={styles.contactName}>{item.name}</Text>
+              <Text style={styles.contactNumber}>{item.number}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    ));
+    setRenderedContacts(renderedItems);
+  };
+
+  const NoContactsContent = (
+    <View style={styles.noContactsContainer}>
+      <Image style={styles.noContactsImage} source={require('./scr/assets/k.jpg')} />
+      <Text>You have no contacts Yet</Text>
+    </View>
+  );
+
+
+  const ContactDetailsPopup = ({ contact, onClose }) => {
+    return (
+      <View style={{ flex: 1, borderRadius: 20, backgroundColor: 'lightgray' }}>
+        <View style={{ backgroundColor: 'lightgreen' }}>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="arrow-back-outline" size={34} color="black" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 28, fontWeight: 'bold', right: -80 }}>Contacts</Text>
+          </View>
+
+          <View style={{ justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+
+            <FontAwesome name="user-circle" size={120} color="black" />
+
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ fontSize: 25, fontWeight: '600', padding: 20 }}>{contact.name}</Text>
+              <TouchableOpacity style={{ justifyContent: 'center', right: -100, marginLeft: 'auto', paddingHorizontal: 5, }}
+                onPress={() => deleteContact(contact)}>
+                <Ionicons name="trash" size={34} color="black" />
+              </TouchableOpacity>
+
+              <View style={{ right: -100, paddingTop: 20 }}>
+                <AntDesign name="edit" size={34} color="black" />
+              </View>
+            </View>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 18, fontWeight: '600' }}>+92{contact.number.substring(1)}</Text>
+          <Ionicons name="call" size={34} color="green" />
+          <AntDesign name="message1" size={34} color="black" />
+        </View>
+
+
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Contacts</Text>
+        <TouchableOpacity style={styles.searchIcon} onPress={() => setForthModalVisible(true)}>
+          <Ionicons name="search" size={28} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.contactsContainer}>{contacts.length === 0 ? NoContactsContent : renderedContacts}</View>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
+
+        <Modal visible={isModalVisible}>
+          <View style={{ margin: 20 }}>
+            <View style={{ flexDirection: 'row', margin: 5, borderWidth: 1, borderRadius: 5, borderColor: '#FFFFFF' }}>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 25, fontWeight: '500', textAlign: 'center' }}>       Add</Text>
+              <TouchableOpacity onPress={() => setThirdModalVisible(true)} >
+                <Image style={{ height: 45, width: 45, right: -200 }} source={require('./scr/assets/Tk.png')} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontWeight: '600', fontSize: 20, margin: 15 }}>Name</Text>
+            <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5, }}
+              placeholder="Enter Name"
+              onChangeText={(text) => setNewName(text)}
+              value={newName} />
+
+            <Text style={{ fontWeight: '600', fontSize: 20, margin: 15 }}>Phone Number</Text>
+            <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5, }}
+              placeholder="Enter Number"
+              keyboardType="number-pad"
+              onChangeText={(text) => setNewNumber(text)}
+              value={newNumber} />
+
+            <TouchableOpacity onPress={addContact}>
+              <Text>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
+
+        {/* Contacts List Modal */}
+        <Modal visible={isThirdModalVisible}>
+          <View style={{ flex: 1 }}>
+            <View style={{ padding: 10 }}>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity onPress={() => setThirdModalVisible(false)}>
+                  <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+                </TouchableOpacity>
+                <Text style={styles.contactDetailsHeaderText}>Contacts:</Text>
+              </View>
+              {renderedContacts}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Search Contacts Modal */}
+        <Modal visible={isForthModalVisible}>
+          <View style={{ flex: 1 }}>
+            <View style={{ padding: 10 }}>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity onPress={() => setForthModalVisible(false)}>
+                  <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+                </TouchableOpacity>
+                <Text style={{ right: -70, fontSize: 23, fontWeight: '700' }}>Contacts</Text>
+              </View>
+              <TextInput
+                style={{ margin: 5, borderWidth: 1, borderRadius: 5 }}
+                placeholder="Search Contacts"
+                onChangeText={handleSearch}
+                value={searchQuery}
+              />
+              {renderedContacts}
+
+            </View>
+          </View>
+        </Modal>
+
+        {/* Render the pop-up for contact details */}
+        {selectedContactForDetails && (
+          <Modal visible={true}>
+            <ContactDetailsPopup
+              contact={selectedContactForDetails}
+              onClose={() => setSelectedContactForDetails(null)}
+            />
+          </Modal>
+        )}
+
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  header: {
+    flexDirection: 'row',
+    backgroundColor: 'lightgray',
+    paddingHorizontal: 10,
+  },
+  headerText: {
+    fontSize: 25,
+    fontWeight: 'bold',
+    padding: 10,
+  },
+  searchIcon: {
+    right: -250,
+  },
+  contactsContainer: {
+    flex: 1,
+  },
+  contactContainer: {
+    marginHorizontal: 10,
+    marginVertical: 10,
+    paddingVertical: 10,
+    borderRadius: 5,
+    flexDirection: 'row',
+  },
+  avatarContainer: {
+    justifyContent: 'center',
+  },
+  avatarText: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 150,
+    backgroundColor: '#BFC9CA',
+    marginHorizontal: 10,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  contactName: {
+    color: 'black',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  contactNumber: {
+    color: 'black',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  noContactsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 60,
+  },
+  noContactsImage: {
+    height: 200,
+    width: 250,
+  },
+  footer: {
+    position: 'absolute',
+    right: 30,
+    bottom: 0,
+  },
+  addButton: {
+    backgroundColor: 'blue',
+    margin: 5,
+    borderRadius: 50,
+    height: 50,
+    width: 50,
+  },
+  addButtonText: {
+    textAlign: 'center',
+    color: '#FFFFFF',
+    paddingVertical: 5,
+    fontSize: 30,
+  },
+
+
+  contactDetailsHeaderText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    right: -100,
+  },
+  contactDetailsContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 60,
+  },
+
+});
+
+export default YourApp;
+
+// import React, { useState, useEffect } from 'react';
+// import { View, Text, TouchableOpacity, Modal, TextInput, Image } from 'react-native'
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AntDesign from 'react-native-vector-icons/AntDesign';
+// import Ionicons from 'react-native-vector-icons/Ionicons'; 
+// import FontAwesome from 'react-native-vector-icons/FontAwesome'; 
+
+// const YourApp = () => {
+//   const [contacts, setContacts] = useState([
+//     { name: 'Arshan', number: '03329010686' },
+//     { name: 'samra', number: '03329010686' },
+//     { name: 'Natasha', number: '03329010686' },
+//   ]);
+
+//   const [renderedContacts, setRenderedContacts] = useState([]);
+//   const [newName, setNewName] = useState('');
+//   const [newNumber, setNewNumber] = useState('');
+//   const [searchQuery, setSearchQuery] = useState('');
+//   const [isModalVisible, setModalVisible] = useState(false);
+//   const [isThirdModalVisible, setThirdModalVisible] = useState(false);
+//   const [isForthModalVisible, setForthModalVisible] = useState(false);
+//   const [selectedContactForDeletion, setSelectedContactForDeletion] = useState(null);
+//   const [selectedContactForDetails, setSelectedContactForDetails] = useState(null);
+
+//   useEffect(() => {
+//     getdata();
+//   }, []);
+
+//   const getdata = async () => {
+//     const name = await AsyncStorage.getItem('@key');
+//     const dataArray = JSON.parse(name);
+//     console.log('array', dataArray);
+//     setContacts(dataArray);
+//     renderContacts(dataArray);
+//   };
+
+//   const addContact = async () => {
+//     if (newName.trim() === '' || newNumber.trim() === '') {
+//       alert('Please enter a valid Name and Number.');
+//       return;
+//     }
+//     const newContact = { name: newName, number: newNumber };
+//     const updatedContacts = [...contacts, newContact];
+//     const data = JSON.stringify(updatedContacts);
+//     await AsyncStorage.setItem('@key', data);
+//     setContacts(updatedContacts);
+//     setNewName('');
+//     setNewNumber('');
+//     getdata();
+//     renderContacts(updatedContacts);
+//   };
+
+
+//   const deleteContact = (index) => {
+//     const updatedContacts = [...contacts];
+//     updatedContacts.splice(index, 1);
+//     setContacts(updatedContacts);
+//     renderContacts(updatedContacts);
+//   };
+
+//   const handleSearch = (query) => {
+//     setSearchQuery(query);
+//     const filteredContacts = contacts.filter((contact) =>
+//       contact.name.toLowerCase().includes(query.toLowerCase())
+//     );
+//     renderContacts(filteredContacts);
+//   };
+
+//   const renderContacts = (contacts) => {
+//     const renderedItems = contacts.map((item, index) => (
+//       <View key={index}>
+//         <TouchableOpacity onPress={() => setSelectedContactForDetails(item)}>
+//           <View
+//             style={{
+
+//               marginHorizontal: 10,
+//               marginVertical: 10,
+//               paddingVertical: 10,
+//               borderRadius: 5,
+//               flexDirection: 'row',
+//             }}>
+//             <View style={{ justifyContent: 'center' }}>
+//               <Text
+//                 style={{
+//                   paddingVertical: 5,
+//                   paddingHorizontal: 10,
+//                   borderRadius: 150,
+//                   backgroundColor: '#BFC9CA',
+//                   marginHorizontal: 10,
+//                   fontSize: 20,
+//                   fontWeight: 'bold',
+//                 }}>
+//                 {item.name.substring(0, 1)}
+//               </Text>
+//             </View>
+//             <View>
+//               <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 15 }}>{'   '}{item.name}</Text>
+//               <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 15 }}>{'   '}{item.number}</Text>
+//             </View>
+         
+//           </View>
+//         </TouchableOpacity>
+//       </View>
+//     ));
+//     setRenderedContacts(renderedItems);
+//   };
+
+//   const NoContactsContent = (
+//     <View style={{ justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+//       <Image style={{ height: 200, width: 250 }} source={require('./scr/assets/k.jpg')} />
+//       <Text>You have no contacts Yet</Text>
+//     </View>
+//   );
+//   const handlePress = (contact) => {
+//     deleteContact(contact);
+//     renderContacts(contact);
+//   };
+
+//   const ContactDetailsPopup = ({ contact, onClose }) => {
+//     return (
+//       <View style={{ flex: 1, borderRadius: 20,backgroundColor:'lightgray'}}>
+//         <View style={{backgroundColor:'lightgreen'}}>
+//         <View style={{ flexDirection: 'row' }}>
+//           <TouchableOpacity  onPress={onClose}>
+//            <Ionicons  name="arrow-back-outline"  size={34}  color="black"  />
+//           </TouchableOpacity>
+//           <Text style={{ fontSize: 28, fontWeight: 'bold', right: -80 }}>Contacts</Text>
+//         </View>
+
+//         <View style={{ justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+    
+//         <FontAwesome  name="user-circle"  size={120}  color="black"  />
+
+//           <View style={{ flexDirection: 'row' }}>
+//             <Text style={{ fontSize: 25, fontWeight: '600', padding: 20 }}>{contact.name}</Text>
+//             <TouchableOpacity style={{ justifyContent: 'center',right:-100, marginLeft: 'auto', paddingHorizontal: 5, }}
+//               onPress={() => deleteContact(contact)}>
+//              <Ionicons  name="trash"  size={34}  color="black"  />
+//             </TouchableOpacity>
+
+//             <View style={{right:-100,paddingTop:20}}>
+//             <AntDesign  name="edit"  size={34}  color="black"  />
+//             </View>
+//           </View>
+//         </View>
+//         </View>
+//         <View style={{flexDirection:'row',justifyContent:'space-between'}}>
+//         <Text style={{ fontSize: 18, fontWeight: '600' }}>+92{contact.number.substring(1)}</Text>
+//         <Ionicons  name="call"  size={34}  color="green"  />
+//         <AntDesign  name="message1"  size={34}  color="black"  />
+//         </View>
+
+     
+//       </View>
+//     );
+//   };
+
+//   return (
+//     <View style={{ flex: 1 ,backgroundColor:'white'}}>
+//       <View style={{ flexDirection: 'row',backgroundColor:'lightgray' }}>
+//         <Text style={{ fontSize: 25, fontWeight: 'bold',padding:10 }}>Contacts</Text>
+//         <TouchableOpacity style={{right:-250}} onPress={() => setForthModalVisible(true)} >
+//         <Ionicons  name="search"  size={28}  color="black"  />
+//         </TouchableOpacity>
+//       </View>
+
+//       <View>{contacts.length === 0 ? NoContactsContent : renderedContacts}</View>
+
+//       <View style={{ flex: 1 }}>
+//         <TouchableOpacity
+//           style={{ position: 'absolute', right: 30, bottom: 0, backgroundColor: 'blue', margin: 5, borderRadius: 50, height: 50, width: 50 }}
+//           onPress={() => setModalVisible(true)}>
+//           <Text style={{ textAlign: 'center', color: '#FFFFFF', paddingVertical: 5, fontSize: 30 }}>+</Text>
+//         </TouchableOpacity>
+
+//         <Modal visible={isModalVisible}>
+//           <View style={{margin:20}}>
+
+//             <View style={{ flexDirection: 'row', margin: 5, borderWidth: 1, borderRadius: 5, borderColor: '#FFFFFF' }}>
+
+//               <TouchableOpacity onPress={() => setModalVisible(false)}>
+//                 <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+//               </TouchableOpacity>
+//               <Text style={{ fontSize: 25, fontWeight: '500',textAlign:'center' }}>        Add</Text>
+//               <TouchableOpacity onPress={() => setThirdModalVisible(true)} >
+//               <Image style={{  height: 45, width: 45 ,right:-200}} source={require('./scr/assets/Tk.png')} />
+//             </TouchableOpacity>
+//             </View>
+
+//             <Text style={{ fontWeight: '600',fontSize:20, margin: 15 }}>Name</Text>
+//             <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5 ,}}
+//               placeholder="Enter Name"
+//               onChangeText={(text) => setNewName(text)}
+//               value={newName} />
+
+//             <Text style={{ fontWeight: '600',fontSize:20, margin: 15 }}>Phone Number</Text>
+//             <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5, }}
+//               placeholder="Enter Number"
+//               keyboardType="number-pad"
+//               onChangeText={(text) => setNewNumber(text)}
+//               value={newNumber} />
+
+          
+
+//              <TouchableOpacity onPress={addContact}>
+//               <Text>Save</Text>
+//             </TouchableOpacity> 
+//           </View>
+//         </Modal>
+
+//         {/* Contacts List Modal */}
+//         <Modal visible={isThirdModalVisible}>
+//           <View style={{ flex: 1 }}>
+//             <View style={{ padding: 10 }}>
+//               <View style={{ flexDirection: 'row' }}>
+//                 <TouchableOpacity onPress={() => setThirdModalVisible(false)}>
+//                   <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+//                 </TouchableOpacity>
+//                 <Text style={{ marginBottom: 8, textAlign: 'right' }}>Contacts:</Text>
+//               </View>
+//               {renderedContacts}
+//             </View>
+//           </View>
+//         </Modal>
+
+//         {/* Search Contacts Modal */}
+//         <Modal visible={isForthModalVisible}>
+//           <View style={{ flex: 1 }}>
+//             <View style={{ padding: 10 }}>
+//               <View style={{ flexDirection: 'row' }}>
+//                 <TouchableOpacity onPress={() => setForthModalVisible(false)}>
+//                   <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+//                 </TouchableOpacity>
+//                 <Text style={{ right:-70,fontSize:23,fontWeight:'700'}}>Contacts</Text>
+//               </View>
+//               <TextInput
+//                 style={{ margin: 5, borderWidth: 1, borderRadius: 5 }}
+//                 placeholder="Search Contacts"
+//                 onChangeText={handleSearch}
+//                 value={searchQuery}
+//               />
+//               {renderedContacts}
+
+//             </View>
+//           </View>
+//         </Modal>
+
+//         {/* Render the pop-up for contact details */}
+//         {selectedContactForDetails && (
+//           <Modal visible={true}>
+//             <ContactDetailsPopup
+//               contact={selectedContactForDetails}
+//               onClose={() => setSelectedContactForDetails(null)}
+//             />
+//           </Modal>
+//         )}
+
+//       </View>
+//     </View>
+//   );
+// };
+
+// export default YourApp;   
+
+
+// //  import React, { useState, useEffect } from 'react';
+// //  import { View, Text, TouchableOpacity, Modal, TextInput,Image } from 'react-native';
+ 
+// //  import AsyncStorage from '@react-native-async-storage/async-storage';
+ 
+// //  const YourApp = () => {
+// //    const [contacts, setContacts] = useState([
+// //      { name: 'Arshan', number: '03329010686' },
+// //      { name: 'samra', number: '03329010686' },
+// //      { name: 'Natasha', number: '03329010686' },
+// //    ]);
+ 
+// //    const [renderedContacts, setRenderedContacts] = useState([]);
+// //    const [newName, setNewName] = useState('');
+// //    const [newNumber, setNewNumber] = useState('');
+// //    const [searchQuery, setSearchQuery] = useState('');
+// //    const [isModalVisible, setModalVisible] = useState(false);
+// //    const [isThirdModalVisible, setThirdModalVisible] = useState(false);
+// //    const [isForthModalVisible, setForthModalVisible] = useState(false);
+// //    const [selectedContactForDeletion, setSelectedContactForDeletion] = useState(null);
+// //    const [selectedContactForDetails, setSelectedContactForDetails] = useState(null);
+ 
+// //    useEffect(() => {
+// //      getdata();
+// //    }, []);
+ 
+// //    const getdata = async () => {
+// //      const name = await AsyncStorage.getItem('@key');
+// //      const dataArray = JSON.parse(name);
+// //      console.log('array', dataArray);
+// //      setContacts(dataArray);
+// //      renderContacts(dataArray);
+// //    };
+ 
+// //    const addContact = async () => {
+// //      const newContact = { name: newName, number: newNumber };
+// //      const updatedContacts = [...contacts, newContact];
+// //      const data = JSON.stringify(updatedContacts);
+// //      await AsyncStorage.setItem('@key', data);
+// //      setContacts(updatedContacts);
+// //      setNewName('');
+// //      setNewNumber('');
+// //      getdata();
+// //      renderContacts(updatedContacts);
+// //    };
+ 
+// //    const deleteContact = (index) => {
+// //      const updatedContacts = [...contacts];
+// //      updatedContacts.splice(index, 1);
+// //      setContacts(updatedContacts);
+// //      renderContacts(updatedContacts);
+// //    };
+ 
+// //    const handleSearch = (query) => {
+// //      setSearchQuery(query);
+// //      const filteredContacts = contacts.filter((contact) =>
+// //        contact.name.toLowerCase().includes(query.toLowerCase())
+// //      );
+// //      renderContacts(filteredContacts);
+// //    };
+ 
+// //    const renderContacts = (contacts) => {
+// //      const renderedItems = contacts.map((item, index) => (
+// //        <View key={index}>
+// //          <TouchableOpacity onPress={() => setSelectedContactForDetails(item)}>
+// //            <View
+// //              style={{
+// //                backgroundColor: 'white',
+// //                marginHorizontal: 10,
+// //                marginVertical: 10,
+// //                paddingVertical: 10,
+// //                borderRadius: 5,
+// //                flexDirection: 'row',
+// //              }}>
+// //              <View style={{ justifyContent: 'center' }}>
+// //                <Text
+// //                  style={{
+// //                    paddingVertical: 5,
+// //                    paddingHorizontal: 10,
+// //                    borderRadius: 150,
+// //                    backgroundColor: '#BFC9CA',
+// //                    marginHorizontal: 10,
+// //                    fontSize: 20,
+// //                    fontWeight: 'bold',
+// //                  }}>
+// //                  {item.name.substring(0, 1)}
+// //                </Text>
+// //              </View>
+// //              <View>
+// //                <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 15 }}>{item.name}</Text>
+// //                <Text style={{ color: 'black', fontWeight: 'bold', fontSize: 15 }}>{item.number}</Text>
+// //              </View>
+// //              <TouchableOpacity
+// //                style={{
+// //                  justifyContent: 'center',
+// //                  alignItems: 'center',
+// //                  marginLeft: 'auto',
+// //                  paddingHorizontal: 10,
+// //                }}
+// //                onPress={() => deleteContact(index)}>
+// //                <Image style={{ height: 15, width: 15 ,right:30}} source={require('./scr/assets/del.png')} />
+// //              </TouchableOpacity>
+// //            </View>
+// //          </TouchableOpacity>
+// //        </View>
+// //      ));
+// //      setRenderedContacts(renderedItems);
+// //    };
+ 
+// //    const NoContactsContent = (
+// //      <View style={{ justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+// //        <Image style={{ height: 200, width: 250 }} source={require('./scr/assets/k.jpg')} />
+// //        <Text>You have no contacts Yet</Text>
+// //      </View>
+// //    );
+// //    const handlePress = (contact) => {
+// //      deleteContact(contact);
+// //      renderContacts(contact);
+// //    };
+// //    const ContactDetailsPopup = ({ contact, onClose }) => {
+// //      return (
+// //        <View style={{ flex:1,backgroundColor: 'white', padding: 20, borderRadius: 20 }}>
+// //           <View>
+// //          <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Contacts</Text>
+// //        </View>
+  
+// //        <View style={{ justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+// //        <Image style={{ height: 85, width: 90 }} source={require('./scr/assets/user.png')} />
+ 
+// //        <View style={{flexDirection:'row'}}>
+// //        <Text style={{ fontSize: 20, fontWeight: '600',padding:20 }}>{contact.name}</Text>
+// //        <TouchableOpacity style={{justifyContent: 'center',alignItems: 'center', marginLeft: 'auto',  paddingHorizontal: 10, }}
+// //                onPress={() =>handlePress(contact)}>
+// //                <Image style={{ height: 15, width: 15 ,right:-80}} source={require('./scr/assets/del.png')} />
+// //              </TouchableOpacity>
+// //        </View>
+// //      </View>a
+         
+// //          <Text>+92{contact.number}</Text>
+// //          <TouchableOpacity onPress={onClose}>
+// //            <Text>Close</Text>
+// //          </TouchableOpacity>
+// //        </View>
+// //      );
+// //    };
+ 
+// //    return (
+// //      <View style={{ flex: 1 }}>
+// //        <View style={{flexDirection:'row'}}>
+// //          <Text style={{ fontSize: 25, fontWeight: 'bold' }}>Contacts</Text>
+// //          <TouchableOpacity onPress={() => setForthModalVisible(true)} >
+// //                  <Image style={{   height: 45, width: 45 ,right:-150 }} source={require('./scr/assets/search.png')} />
+// //                </TouchableOpacity>
+// //        </View>
+ 
+// //        <View>{contacts.length === 0 ? NoContactsContent : renderedContacts}</View>
+ 
+// //        <View style={{ flex: 1 }}>
+// //          <TouchableOpacity
+// //            style={{ position: 'absolute', right: 30, bottom: 0, backgroundColor: 'blue', margin: 5, borderRadius: 50, height: 50, width: 50 }}
+// //            onPress={() => setModalVisible(true)}>
+// //            <Text style={{ textAlign: 'center', color: '#FFFFFF', paddingVertical: 5, fontSize: 30 }}>+</Text>
+// //          </TouchableOpacity>
+     
+// //          {/* Add Contact Modal */}
+// //          <Modal visible={isModalVisible}>
+// //                   <View >
+ 
+// //              <View style={{ flexDirection: 'row', margin: 5, borderWidth: 1, borderRadius: 5, borderColor: '#FFFFFF' }}>
+             
+// //                <TouchableOpacity onPress={() => setModalVisible(false)}>
+// //                  <Image style={{ height: 30, width: 30 }} source={require('./scr/assets/arrow.png')} />
+// //                </TouchableOpacity>
+// //                <Text style={{ fontSize: 25, fontWeight: '500' }}>        Add</Text>
+// //              </View>
+ 
+// //              <Text style={{ fontWeight: '600', margin: 8 }}>Name</Text>
+// //              <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5 }}
+// //                placeholder="Enter Name"
+// //                onChangeText={(text) => setNewName(text)}
+// //                value={newName} />
+ 
+// //              <Text style={{ fontWeight: '600', margin: 8 }}>Phone Number</Text>
+// //              <TextInput style={{ margin: 5, borderWidth: 1, borderRadius: 5 }}
+// //                placeholder="Enter Number"
+// //                keyboardType="number-pad"
+// //                onChangeText={(text) => setNewNumber(text)}
+// //                value={newNumber} />
+ 
+// //              <TouchableOpacity onPress={() => setThirdModalVisible(true)} >
+// //                <Image style={{ position: 'absolute', right: 5, height: 45, width: 45 }} source={require('./scr/assets/Tk.png')} />
+// //              </TouchableOpacity>
+              
+// //              <TouchableOpacity onPress={addContact}>
+// //                <Text>Save</Text>
+// //              </TouchableOpacity>
+// //            </View>
+// //          </Modal>
+ 
+// //          {/* Contacts List Modal */}
+// //          <Modal visible={isThirdModalVisible}>
+// //          <View style={{ flex: 1 }}>
+// //              <View style={{ padding: 10 }}>
+// //                <Text style={{ marginBottom: 8 }}>Contacts:</Text>
+// //                {renderedContacts}
+// //                <TouchableOpacity onPress={() => setThirdModalVisible(false)}>
+// //                  <Text>Close</Text>
+// //                </TouchableOpacity>
+               
+// //              </View>
+// //            </View>
+// //          </Modal>
+ 
+// //          {/* Search Contacts Modal */}
+// //          <Modal visible={isForthModalVisible}>
+// //          <View style={{ flex: 1 }}>
+// //              <View style={{ padding: 10 }}>
+// //                <Text style={{ marginBottom: 8 }}>Contacts:</Text>
+// //                <TextInput
+// //                  style={{ margin: 5, borderWidth: 1, borderRadius: 5 }}
+// //                  placeholder="Search Contacts"
+// //                  onChangeText={handleSearch}
+// //                  value={searchQuery}
+// //                />
+// //                {renderedContacts}
+// //                <TouchableOpacity onPress={() => setForthModalVisible(false)}>
+// //                  <Text>Close</Text>
+// //                </TouchableOpacity>
+// //              </View>
+// //            </View>
+// //          </Modal>
+ 
+// //          {/* Render the pop-up for contact details */}
+// //          {selectedContactForDetails && (
+// //            <Modal visible={true}>
+// //              <ContactDetailsPopup
+// //                contact={selectedContactForDetails}
+// //                onClose={() => setSelectedContactForDetails(null)}
+// //              />
+// //            </Modal>
+// //          )}
+ 
+// //        </View>
+// //      </View>
+// //    );
+// //  };
+ 
+// //  export default YourApp;
